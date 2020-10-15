@@ -105,7 +105,7 @@ for url in range(0,996):
     html = urlopen(URL)
     soup = BeautifulSoup(html, 'lxml')
 
-    d = {}
+    temp_dict = {}
     total = []
     title = soup.find('h1')
     title = str(title)
@@ -193,8 +193,8 @@ for url in range(0,996):
 
 
 
-        d['df' + str(i+1)] = dataframe
-    result = pd.concat([d['df1'], d['df2']], axis = 1)
+        temp_dict['df' + str(i+1)] = dataframe
+    result = pd.concat([temp_dict['df1'], temp_dict['df2']], axis = 1)
 
 
     if total[0] > total[1]:
@@ -202,9 +202,9 @@ for url in range(0,996):
     else:
         win = 1
 
-    f = {'result': win}
+    final = {'result': win}
     ind = np.arange(len(f))
-    scores = pd.DataFrame(data=f, index = ind)
+    scores = pd.DataFrame(data=final, index = ind)
     result = pd.concat([result, scores], axis = 1)
     
     if url == 0:
@@ -212,6 +212,6 @@ for url in range(0,996):
     else:
         result.to_csv('nba.csv', mode='a',index = False, header=False)
 
-    #print(url) # Can uncomment to see the number of entries being added in real time.
+    print(url)
 print("DONE!")
 

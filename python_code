@@ -1,0 +1,217 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+%matplotlib inline
+
+
+from urllib.request import urlopen
+from bs4 import BeautifulSoup
+
+teams = {
+    'Boston Celtics': 'BOS',
+    'Brooklyn Nets': 'BRK',
+    'New York Knicks': 'NYK',
+    'Philadelphia 76ers': 'PHI',
+    'Toronto Raptors': 'TOR',
+    'Chicago Bulls': 'CHI',
+    'Cleveland Cavaliers': 'CLE',
+    'Detroit Pistons': 'DET',
+    'Indiana Pacers': 'IND',
+    'Milwaukee Bucks': 'MIL',
+    'Atlanta Hawks': 'ATL',
+    'Charlotte Hornets': 'CHO',
+    'Miami Heat': 'MIA',
+    'Orlando Magic': 'ORL',
+    'Washington Wizards': 'WAS',
+    'Dallas Mavericks': 'DAL',
+    'Houston Rockets': 'HOU',
+    'Memphis Grizzlies': 'MEM',
+    'New Orleans Pelicans': 'NOP',
+    'San Antonio Spurs': 'SAS',
+    'Denver Nuggets': 'DEN',
+    'Minnesota Timberwolves': 'MIN',
+    'Oklahoma City Thunder': 'OKC',
+    'Portland Trail Blazers': 'POR',
+    'Utah Jazz': 'UTA',
+    'Golden State Warriors': 'GSW',
+    'Los Angeles Clippers': 'LAC',
+    'Los Angeles Lakers': 'LAL',
+    'Phoenix Suns': 'PHO',
+    'Sacramento Kings': 'SAC',
+}
+
+
+teams_num = {
+    'BOS': 1,
+    'BRK': 2,
+    'NYK': 3,
+    'PHI': 4,
+    'TOR': 5,
+    'CHI': 6,
+    'CLE': 7,
+    'DET': 8,
+    'IND': 9,
+    'MIL': 10,
+    'ATL': 11,
+    'CHO': 12,
+    'MIA': 13,
+    'ORL': 14,
+    'WAS': 15,
+    'DAL': 16,
+    'HOU': 17,
+    'MEM': 18,
+    'NOP': 19,
+    'SAS': 20,
+    'DEN': 21,
+    'MIN': 22,
+    'OKC': 23,
+    'POR': 24,
+    'UTA': 25,
+    'GSW': 26,
+    'LAC': 27,
+    'LAL': 28,
+    'PHO': 29,
+    'SAC': 30,
+}
+
+features_wanted = ['fg','fga',"fg_pct","fg3","fg3a","fg3_pct","ft","fta","ft_pct",
+                   "orb","drb","trb","ast","stl","blk","tov","pf","pts"]
+                   
+months = ['https://www.basketball-reference.com/leagues/NBA_2020_games-october.html', 
+          'https://www.basketball-reference.com/leagues/NBA_2020_games-november.html',
+          'https://www.basketball-reference.com/leagues/NBA_2020_games-december.html',
+          'https://www.basketball-reference.com/leagues/NBA_2020_games-january.html',
+          'https://www.basketball-reference.com/leagues/NBA_2020_games-february.html',
+          'https://www.basketball-reference.com/leagues/NBA_2020_games-march.html',
+          'https://www.basketball-reference.com/leagues/NBA_2020_games-july.html',
+          'https://www.basketball-reference.com/leagues/NBA_2020_games-august.html']
+
+
+final_links = []
+for url in months:
+    html = urlopen(url)
+    soup = BeautifulSoup(html, 'lxml')
+    links = []
+    for link in soup.find_all('a'):
+        if 'boxscores' in str(link):
+            links.append(link.get('href'))
+    for i in range(1, len(links)-3):
+        if i % 2 == 0:
+            final_links.append(links[i]) 
+
+for url in range(0,996):
+    URL = 'https://www.basketball-reference.com' + final_links[url]
+    html = urlopen(URL)
+    soup = BeautifulSoup(html, 'lxml')
+
+    d = {}
+    total = []
+    title = soup.find('h1')
+    title = str(title)
+    target = []
+    for i in teams:
+        if i in title:
+            target.append(teams[i])
+    for i in range(len(target)):
+        string = 'box-'+ target[i] +'-h1-basic'
+        #print(string)
+
+        all_links = soup.find('table', {"id":string})
+
+        table = all_links.find('tfoot')
+
+
+
+    for i in range(len(target)):
+        string = 'box-'+ target[i] +'-h1-basic'
+
+        table = soup.find('table', {"id":string})
+
+        #table = soup.find_all('table')
+        df = pd.read_html(str(table))[0]
+
+        team_total = df.iloc[len(df.index)-1,19]
+        total.append(team_total)
+
+        df = df.drop(5)
+        df = df[:-1]
+        df.drop(df.columns[0:2], axis=1, inplace=True)
+        df = df[df['Basic Box Score Stats', 'FGA'] != 'Did Not Play']
+        df = df[df['Basic Box Score Stats', 'FGA'] != 'Did Not Dress']
+        df = df[df['Basic Box Score Stats', 'FGA'] != 'Not With Team']
+        df.columns =  ['fg','fga',"fg_pct","fg3","fg3a","fg3_pct","ft","fta","ft_pct","orb","drb","trb","ast","stl","blk","tov","pf","pts","+/-"]
+        convert_dict = {'fg': float,
+                    'fga': float,
+                    "fg_pct": float,
+                    "fg3": float,
+                    "fg3a": float,
+                    "fg3_pct": float,
+                    "ft": float,
+                    "fta": float,
+                    "ft_pct": float,
+                    "orb": float,
+                    "drb": float,
+                    "trb": float,
+                    "ast": float,
+                    "stl": float,
+                    "blk": float,
+                    "tov": float,
+                    "pf": float,
+                    "pts": float,
+                    "+/-": float
+                   } 
+        df = df.astype(convert_dict) 
+        df_final = {    'fg'+str(i+1): df["fg"].sum(),
+                    'fga'+str(i+1): df["fga"].sum(),
+                    "fg_pct"+str(i+1): df["fg_pct"].mean(),
+                    "fg3"+str(i+1): df["fg3"].sum(),
+                    "fg3a"+str(i+1): df["fg3a"].sum(),
+                    "fg3_pct"+str(i+1): df["fg3_pct"].mean(),
+                    "ft"+str(i+1): df["ft"].sum(),
+                    "fta"+str(i+1): df["fta"].sum(),
+                    "ft_pct"+str(i+1): df["ft_pct"].mean(),
+                    "orb"+str(i+1): df["orb"].sum(),
+                    "drb"+str(i+1): df["drb"].sum(),
+                    "trb"+str(i+1): df["trb"].sum(),
+                    "ast"+str(i+1): df["ast"].sum(),
+                    "stl"+str(i+1): df["stl"].sum(),
+                    "blk"+str(i+1): df["blk"].sum(),
+                    "tov"+str(i+1): df["tov"].sum(),
+                    "pf"+str(i+1): df["pf"].sum(),
+                    "pts"+str(i+1): df["pts"].sum(),
+                    "+/-"+str(i+1): df["+/-"].sum()}
+
+
+        #pd.DataFrame.from_dict(df_final)
+
+        ind = np.arange(len(df_final))
+
+        dataframe = pd.DataFrame(df_final, index = ind)
+
+        dataframe = dataframe.loc[[0]]
+
+
+
+        d['df' + str(i+1)] = dataframe
+    result = pd.concat([d['df1'], d['df2']], axis = 1)
+
+
+    if total[0] > total[1]:
+        win = 0
+    else:
+        win = 1
+
+    f = {'result': win}
+    ind = np.arange(len(f))
+    scores = pd.DataFrame(data=f, index = ind)
+    result = pd.concat([result, scores], axis = 1)
+    
+    if url == 0:
+        result.to_csv('nba.csv', index = False, header = True)
+    else:
+        result.to_csv('nba.csv', mode='a',index = False, header=False)
+
+    #print(url) # Can uncomment to see the number of entries being added in real time.
+print("DONE!")
+

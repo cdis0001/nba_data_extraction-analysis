@@ -1,0 +1,88 @@
+# This Code is based on FIT3152-Data Aanalytics Unit
+
+#install.packages("tree")
+library(tree)
+#install.packages("e1071")
+library(e1071)
+#install.packages("ROCR")
+library(ROCR)
+#install.packages("rpart")
+library(rpart)
+#install.packages("ipred")
+library(ipred)
+#install.packages("xgboost")
+library(xgboost)
+#install.packages("randomForest")
+library(randomForest)
+#install.packages("adabag")
+library(adabag)
+#install.packages("pROC")
+library(pROC)
+
+
+normalize <- function(x) {
+  return ((x - min(x)) / (max(x) - min(x)))
+}
+
+df1 = read.csv("nba.csv")
+df1 = na.omit(df1)
+
+
+
+set.seed(25953052)
+train.row = sample(1:nrow(df1), 0.7*nrow(df1))
+WAUS.train = df1[train.row,]
+WAUS.test = df1[-train.row,]
+
+
+
+# DECISION TREE
+WAUS_tree = tree(result~., data = WAUS.train)
+plot(WAUS_tree)
+text(WAUS_tree, pretty = 0)
+
+tree.predict = predict(WAUS_tree, WAUS.test, type = "vector")
+t1 = table(predicted = tree.predict, actual = WAUS.test$result)
+print(t1)
+
+tree_cv =cv.tree(WAUS_tree, FUN=prune.misclass)
+print(tree_cv)
+prune.waus = prune.misclass(WAUS_tree,best = 3)
+tree_cv.predict = predict(prune.waus, WAUS.test, type = "class")
+t4=table(predicted = tree_cv.predict, actual = WAUS.test$result)
+print(t4)
+
+
+# RANDOM FOREST
+WAUS_forest = randomForest(result ~., data = WAUS.train, na.action=na.roughfix)
+forest.predict = predict(WAUS_forest, WAUS.test, type = "class")
+t3 = table(predicted = forest.predict, actual = WAUS.test$result)
+forest.predict
+print(t3)
+
+
+# NAIVE BAYES
+WAUS_naive = naiveBayes(result ~., data = WAUS.train)
+naive.predict = predict(WAUS_naive, WAUS.test, type = "class")
+t2 = table(predicted = naive.predict, actual = WAUS.test$result)
+print(t2)
+
+#BAGGING
+WAUS_bag = bagging(result ~., data = WAUS.train)
+bag.predict = predict.bagging(WAUS_bag, WAUS.test)
+print(bag.predict$confusion)
+
+#BOOSTING
+WAUS_boost = boosting(result ~., data = WAUS.train)
+boost.predict = predict.boosting(WAUS_boost, newdata = WAUS.test)
+print(boost.predict$confusion)
+
+
+#ANN
+library(neuralnet)
+nn=neuralnet(result ~., data = WAUS.train, hidden=5,act.fct = "tanh",linear.output=FALSE)
+Predict=compute(nn,WAUS.test)
+prob <- Predict$net.result
+pred <- ifelse(prob>0.5, 1, 0)
+table(observed =  WAUS.test[,39], predicted = pred[,1])
+
